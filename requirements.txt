@@ -1,7 +1,5 @@
-awscli==1.8.2
 boto3==1.1.2
 botocore==1.2.0
-bruges==0.2.2
 colorama==0.3.3
 docutils==0.12
 Flask==0.10.1
