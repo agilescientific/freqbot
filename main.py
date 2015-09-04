@@ -14,7 +14,6 @@ import urllib
 import requests
 import numpy as np
 import scipy.stats
-import scipy.signal
 from PIL import Image
 
 from bruges import get_bruges

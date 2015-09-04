@@ -11,36 +11,44 @@ import boto3
 def get_url(databytes, uuid1):
     file_link = ''
     now = datetime.datetime.now()
-    expires = now + datetime.timedelta(minutes=61)
+    expires = now + datetime.timedelta(minutes=240)
 
     try:
         from secrets import KEY, SECRET
-        print('creating session')
+        print(expires)
         session = boto3.session.Session(aws_access_key_id=KEY,
                                         aws_secret_access_key=SECRET,
                                         region_name='us-east-1'
                                         )
         client = session.client('s3')
-
         key = uuid1 + '.segy'
-        bucket = 'elasticbeanstalk-us-east-1-991793580031/ageobot/segy'
+        bucket = 'ageobot'
+        acl = 'public-read'  # For public file.
         params = {'Body': databytes,
                   'Expires': expires,
                   'Bucket': bucket,
-                  'Key': key}
+                  'Key': key,
+                  'ACL': acl,
+                  }
         r = client.put_object(**params)
-        assert r['ResponseMetadata']['HTTPStatusCode'] == 200
+        success = r['ResponseMetadata']['HTTPStatusCode'] == 200
     except:
         print('Upload to S3 failed')
 
-    try:
-        params = {'Bucket': bucket,
-                  'Key': key}
-        file_link = client.generate_presigned_url('get_object',
-                                                  Params=params,
-                                                  ExpiresIn=3600)
-    except:
-        print('Retrieval of S3 link failed')
+    if success:
+        # Only do this if successfully uploaded, because
+        # you always get a link, even if no file.
+        if acl == 'public-read':
+            file_link = 'https://s3.amazonaws.com/{}/{}'.format(bucket, key)
+        else:
+            try:
+                params = {'Bucket': bucket,
+                          'Key': key}
+                file_link = client.generate_presigned_url('get_object',
+                                                          Params=params,
+                                                          ExpiresIn=3600)
+            except:
+                print('Retrieval of S3 link failed')
 
     return file_link
 
