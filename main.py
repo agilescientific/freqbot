@@ -80,6 +80,8 @@ def freq():
 
     if region:
         r = [int(n) for n in region.split(',')]
+        print(region)
+        print(r)
         try:
             im = im.crop(r)
         except Exception:
