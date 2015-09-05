@@ -80,12 +80,10 @@ def freq():
 
     if region:
         r = [int(n) for n in region.split(',')]
-        print(region)
-        print(r)
         try:
             im = im.crop(r)
         except Exception:
-            raise InvalidUsage('Improper crop parameters', status_code=410)
+            raise InvalidUsage('Improper crop parameters '+region, status_code=410)
 
     # Set up the image.
     grey = geophysics.is_greyscale(im)
