@@ -2,6 +2,8 @@
 """
 Make random text for Bruges.
 
+Use bruges itself eventually.
+
 """
 
 
