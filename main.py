@@ -21,8 +21,8 @@ from segy import write_segy
 import utils
 from errors import InvalidUsage
 
-
-app = Flask(__name__)
+application = Flask(__name__)
+app = application
 
 
 @app.errorhandler(InvalidUsage)
