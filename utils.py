@@ -12,6 +12,7 @@ def get_url(databytes, uuid1):
     file_link = ''
     now = datetime.datetime.now()
     expires = now + datetime.timedelta(minutes=240)
+    success = False
 
     try:
         from secrets import KEY, SECRET

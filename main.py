@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Simple app to provide freq from images of seismic.
+Simple application to provide freq from images of seismic.
 Freq code by endolith https://gist.github.com/endolith/255291
 """
 from io import BytesIO
@@ -22,17 +22,16 @@ import utils
 from errors import InvalidUsage
 
 application = Flask(__name__)
-app = application
 
 
-@app.errorhandler(InvalidUsage)
+@application.errorhandler(InvalidUsage)
 def handle_invalid_usage(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
 
 
-@app.route('/freq')
+@application.route('/freq')
 def freq():
 
     # Params from inputs.
@@ -104,8 +103,8 @@ def freq():
             databytes.seek(0)
         except:
             print('Write SEGY failed')
-
-        file_link = utils.get_url(databytes, uuid1)
+        else:
+            file_link = utils.get_url(databytes, uuid1)
 
     # Do analysis.
     m = {'auto': geophysics.freq_from_autocorr,
@@ -208,8 +207,8 @@ def freq():
     return jsonify(result)
 
 
-@app.route('/bruges')
-@app.route('/bruges.png')
+@application.route('/bruges')
+@application.route('/bruges.png')
 def bruges_png():
 
     p = float(request.args.get('p') or 0.5)
@@ -238,7 +237,7 @@ def bruges_png():
     return response
 
 
-@app.route('/bruges.json')
+@application.route('/bruges.json')
 def bruges_json():
 
     p = float(request.args.get('p') or 0.5)
@@ -253,7 +252,7 @@ def bruges_json():
     return jsonify(dictionary)
 
 
-@app.route('/bruges.txt')
+@application.route('/bruges.txt')
 def bruges_text():
 
     p = float(request.args.get('p') or 0.5)
@@ -263,18 +262,18 @@ def bruges_text():
     return text
 
 
-@app.route('/bruges.help')
+@application.route('/bruges.help')
 def bruges_help():
 
     return render_template('bruges.html',
                            title='Bruges help')
 
 
-@app.route('/')
+@application.route('/')
 def main():
     return render_template('index.html',
                            title='Home')
 
 if __name__ == "__main__":
-    # app.debug = True
-    app.run()
+    # application.debug = True
+    application.run()
