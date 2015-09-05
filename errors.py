@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Errors for ageobot.
-
 """
 
 
