@@ -13,7 +13,6 @@ from flask import request, jsonify, render_template
 import urllib
 import requests
 import numpy as np
-import scipy.stats
 from PIL import Image
 
 from bruges import get_bruges
@@ -124,7 +123,7 @@ def freq():
     fn, pn = len(f_list), len(p_list)
 
     if avg == 'trim' and fn > 4:
-        f = scipy.stats.trim_mean(f_list, 0.2)
+        f = geophysics.trim_mean(f_list, 0.2)
     elif avg == 'mean' or (avg == 'trim' and fn <= 4):
         f = np.nanmean(f_list)
     else:
@@ -132,7 +131,7 @@ def freq():
         raise InvalidUsage(m, status_code=410)
 
     if avg == 'trim' and pn > 4:
-        p = scipy.stats.trim_mean(p_list, 0.2)
+        p = geophysics.trim_mean(p_list, 0.2)
     elif avg == 'mean' or (avg == 'trim' and pn <= 4):
         p = np.nanmean(p_list)
     else:

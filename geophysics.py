@@ -6,8 +6,6 @@ TODO: Move some of this to Bruges.
 
 """
 import numpy as np
-import scipy.stats
-import scipy.signal
 from PIL import ImageStat
 
 
@@ -16,6 +14,44 @@ def is_greyscale(im):
     if sum(stat.sum[:3])/3 == stat.sum[0]:
         return True
     return False
+
+
+def hilbert(s, phi=0):
+    """
+    Optional phase shift phi in degrees.
+    
+    I don't understand why I need to handle the
+    real and complex parts separately.
+    """
+    n = s.size
+    m = np.ceil((n + 1) / 2)
+
+    r0 = np.exp(1j * np.radians(phi))
+    rr = np.ones(n, dtype=complex)
+    ri = np.ones(n, dtype=complex)
+    rr[:m] = r0
+    ri[:m] = r0
+    rr[m+1:] = np.conj(r0)
+    ri[m+1:] = -1 * r0
+
+    _Sr = rr * np.fft.fft(s)
+    _Si = ri * np.fft.fft(s)
+
+    hr = np.fft.ifft(_Sr)
+    hi = np.fft.ifft(_Si)
+    
+    h = np.zeros_like(hr, dtype=complex)
+    
+    h += hr.real + hi.imag * 1j
+    
+    return h
+
+
+def trim_mean(a, proportion):
+    n = a.size
+    a = np.sort(a)
+    k = int(np.floor(n*proportion))
+    return np.mean(a[k:-k])
 
 
 def parabolic(f, x):
@@ -32,7 +68,7 @@ def freq_from_crossings(sig, fs):
 
 def freq_from_autocorr(sig, fs):
     sig = sig + 128
-    corr = scipy.signal.fftconvolve(sig, sig[::-1], mode='full')
+    corr = np.convolve(sig, sig[::-1], mode='full')
     corr = corr[len(corr)/2:]
     d = np.diff(corr)
     start = (d > 0).nonzero()[0][0]  # nonzero() returns a tuple
@@ -42,7 +78,7 @@ def freq_from_autocorr(sig, fs):
 
 
 def get_spectrum(signal, fs):
-    windowed = signal * scipy.signal.blackmanharris(len(signal))
+    windowed = signal * np.blackman(len(signal))
     a = abs(np.fft.rfft(windowed))
     f = np.fft.rfftfreq(len(signal), 1/fs)
 
@@ -73,7 +109,7 @@ def get_snr(i):
 
 
 def get_phase(i):
-    e = scipy.signal.hilbert(i)
+    e = hilbert(i)
 
     # Get the biggest 25 sample indices and sort them by amplitude
     biggest = np.argpartition(e.real, -25)[-25:]
