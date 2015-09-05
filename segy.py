@@ -6,8 +6,6 @@ SEGY file writing.
 import numpy as np
 
 import segpy
-from segpy import toolkit
-from segpy import encoding
 
 
 def write_segy(data, fo, dtype=5):
@@ -35,7 +33,7 @@ def write_segy(data, fo, dtype=5):
 
     trh = [s[:80]+(80-len(s))*' ' for s in info_header]  # Exactly 80 cols
     trh = trh[:40]  # Limit to 40 lines
-    toolkit.write_textual_reel_header(fo, trh, encoding.ASCII)  # No EBCDIC
+    segpy.toolkit.write_textual_reel_header(fo, trh, segpy.encoding.ASCII)  # No EBCDIC
 
     # Build the binary header.
     brh = segpy.binary_reel_header.BinaryReelHeader()
@@ -54,11 +52,11 @@ def write_segy(data, fo, dtype=5):
     brh.measurement_system = 1  # m, default 0 = unknown, 2 = ft
 
     # Write the binary header.
-    toolkit.write_binary_reel_header(fo, brh)
+    segpy.toolkit.write_binary_reel_header(fo, brh)
 
     # Pre-format trace header format.
     t = segpy.trace_header.TraceHeaderRev1
-    trace_header_packer = toolkit.make_header_packer(t)
+    trace_header_packer = segpy.toolkit.make_header_packer(t)
 
     # Make a trace geometry.
     xxlines, iinlines = np.meshgrid(xlines, inlines)
@@ -92,8 +90,8 @@ def write_segy(data, fo, dtype=5):
             trace_header.shotpoint_number = xline
 
         # Write trace header and data.
-        toolkit.write_trace_header(fo, trace_header, trace_header_packer)
-        toolkit.write_trace_samples(fo, samples, seg_y_type=segy_type)
+        segpy.toolkit.write_trace_header(fo, trace_header, trace_header_packer)
+        segpy.toolkit.write_trace_samples(fo, samples, seg_y_type=segy_type)
 
     print('leaving write_segy()')
 
