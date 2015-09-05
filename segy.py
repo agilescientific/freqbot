@@ -11,6 +11,7 @@ from segpy import encoding
 
 
 def write_segy(data, fo, dtype=5):
+    print('entering write_segy()')
     sample_interval = 4  # ms
 
     if data.ndim == 3:
@@ -93,5 +94,7 @@ def write_segy(data, fo, dtype=5):
         # Write trace header and data.
         toolkit.write_trace_header(fo, trace_header, trace_header_packer)
         toolkit.write_trace_samples(fo, samples, seg_y_type=segy_type)
+
+    print('leaving write_segy()')
 
     return None

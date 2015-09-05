@@ -9,6 +9,8 @@ import boto3
 
 
 def get_url(databytes, uuid1):
+    print('entering get_url()')
+
     file_link = ''
     now = datetime.datetime.now()
     expires = now + datetime.timedelta(minutes=240)
@@ -16,7 +18,6 @@ def get_url(databytes, uuid1):
 
     try:
         from secrets import KEY, SECRET
-        print(expires)
         session = boto3.session.Session(aws_access_key_id=KEY,
                                         aws_secret_access_key=SECRET,
                                         region_name='us-east-1'
@@ -35,6 +36,8 @@ def get_url(databytes, uuid1):
         success = r['ResponseMetadata']['HTTPStatusCode'] == 200
     except:
         print('Upload to S3 failed')
+
+    print(str(success))
 
     if success:
         # Only do this if successfully uploaded, because
