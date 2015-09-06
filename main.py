@@ -38,7 +38,7 @@ def freq():
     url = request.args.get('url')
     method = request.args.get('method') or 'xing'
     avg = request.args.get('avg') or 'mean'
-    region = request.args.get('region') or []
+    region = request.args.get('region')
     ntraces = request.args.get('ntraces') or '10'
     trace_spacing = request.args.get('trace_spacing') or 'regular'
     bins = request.args.get('bins') or '9'
@@ -61,6 +61,10 @@ def freq():
     t_min = float(t_min)
     t_max = float(t_max)
     uuid1 = str(uuid.uuid1())
+    if region:
+        region = [int(n) for n in region.split(',')]
+    else:
+        region = []
 
     # Fetch and crop image.
     try:
@@ -79,9 +83,8 @@ def freq():
         return jsonify(result)
 
     if region:
-        r = [int(n) for n in region.split(',')]
         try:
-            im = im.crop(r)
+            im = im.crop(region)
         except Exception:
             raise InvalidUsage('Improper crop parameters '+region, status_code=410)
 
