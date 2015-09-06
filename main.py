@@ -2,6 +2,7 @@
 """
 Simple application to provide freq from images of seismic.
 Freq code by endolith https://gist.github.com/endolith/255291
+
 """
 from io import BytesIO
 import uuid
