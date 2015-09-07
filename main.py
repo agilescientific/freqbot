@@ -44,7 +44,7 @@ def freq():
     bins = request.args.get('bins') or '9'
     t_min = request.args.get('tmin') or '0'
     t_max = request.args.get('tmax') or '1'
-    t_max = request.args.get('tmax') or '1'
+    dt_param = request.args.get('dt') or 'auto'
 
     # Booleans.
     spectrum = request.args.get('spectrum') or 'false'
@@ -86,7 +86,28 @@ def freq():
         try:
             im = im.crop(region)
         except Exception:
-            raise InvalidUsage('Improper crop parameters '+region, status_code=410)
+            m = 'Improper crop parameters '
+            raise InvalidUsage(m+region, status_code=410)
+
+    width, height = im.size[0], im.size[1]
+
+    # Calculate dt and interpolate if necessary.
+    if dt_param[:4] == 'orig':
+        dt = (t_max - t_min) / (height - 1)
+    else:
+        if dt_param == 'auto':
+            dts = [0.0005, 0.001, 0.002, 0.004, 0.008]
+            for dt in sorted(dts, reverse=True):
+                target = 1 + (t_max - t_min) / dt
+                # Accept the first one that is larger than the current height.
+                if target > height:
+                    break  # dt and target are set
+        else:
+            dt = float(dt_param)
+            target = (t_max - t_min) / dt
+
+        # If dt is not orig, we need to inpterpolate.
+        im = im.resize((width, target), Image.ANTIALIAS)
 
     # Set up the image.
     grey = geophysics.is_greyscale(im)
@@ -102,7 +123,7 @@ def freq():
     if segy:
         try:
             databytes = BytesIO()
-            write_segy(i, databytes)
+            write_segy(i, databytes, dt, t_min)
             databytes.seek(0)
         except:
             print('Write SEGY failed')
@@ -187,7 +208,8 @@ def freq():
     result['result']['snr'] = {'avg': np.round(snr, 2),
                                'sd': np.round(snrsd, 2)}
     result['result']['greyscale'] = grey
-    result['result']['img_size'] = {'height': im.size[0], 'width': im.size[1]}
+    result['result']['dt'] = dt
+    result['result']['img_size'] = {'height': height, 'width': width}
 
     if segy:
         result['result']['segy'] = file_link
@@ -202,7 +224,7 @@ def freq():
                                          }
 
     result['parameters'] = utils.build_params(method, avg,
-                                              t_min, t_max,
+                                              t_min, t_max, dt_param,
                                               region,
                                               trace_spacing,
                                               url=url)

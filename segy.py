@@ -1,98 +1,152 @@
 # -*- coding: utf-8 -*-
 """
-SEGY file writing.
+Son of segypy: A Python module for writing 2D SEG-Y formatted data.
 
+Thomas Mejer Hansen, 2005-2006
+Pete Forman 2006
+Andrew Squelch 2007
+Agile Geoscience 2015 — write segy only
+source: http://segymat.cvs.sourceforge.net/viewvc/segymat/SegyPY/segypy.py
+
+TODO:
+    Extend to 3D.
 """
+import struct
+
 import numpy as np
 
-import segpy
+from utils import set_type
+from utils import SH_def
+from utils import STH_def
 
 
-def write_segy(data, fo, dtype=5):
-    print('entering write_segy()')
-    sample_interval = 4  # ms
+def _getDefaultSegyHeader(ntraces, ns, dt):
+    """
+    Set up the default filewide header.
 
-    if data.ndim == 3:
-        # These are really indices, not line numbers.
-        inlines = np.arange(0, data.shape[0], 1)
-        xlines = np.arange(0, data.shape[1], 1)
-    else:
-        inlines = [0]
-        xlines = np.arange(0, data.shape[0], 1)
+    dt in seconds.
+    """
+    SH = {"Job": {"pos": 3200, "type": "int32", "def": 0}}
 
-    # dtype = 5  # {8: 'int8', 1: 'ibm', 2: 'int32', 3: 'int16', 5: 'float32'}
-    segy_type = segpy.datatypes.DATA_SAMPLE_FORMAT_TO_SEG_Y_TYPE[dtype]
+    for key in SH_def:
+        SH[key] = SH_def[key].get('def') or 0
 
-    # Using BytesIO so dispense with the file handling
-    # with open(outfile, 'wb') as fo:
+    SH["ntraces"] = ntraces
+    SH["ns"] = ns
+    SH["dt"] = int(dt * 1000000)
+    SH["DataSampleFormat"] = 5  # IEEE
+    SH["EnsembleFold"] = 1
+    SH["TraceSorting"] = 4  # 2 = cdp, 4 = stack, default 0 = unknown
+    SH["MeasurementSystem"] = 1  # m, default 0 = unknown, 2 = ft
+    SH["NumberOfExtTextualHeaders"] = 0
+    SH["FixedLengthTraceFlag"] = 1  # = constant
+    SH["SegyFormatRevisionNumber"] = 1
 
-    # Write the text header. It can contain whatever you like.
-    info_header = [
-        "Created using segpy github.com/rob-smallshire/segpy",
-    ]
+    return SH
 
-    trh = [s[:80]+(80-len(s))*' ' for s in info_header]  # Exactly 80 cols
-    trh = trh[:40]  # Limit to 40 lines
-    segpy.toolkit.write_textual_reel_header(fo, trh, segpy.encoding.ASCII)  # No EBCDIC
 
-    # Build the binary header.
-    brh = segpy.binary_reel_header.BinaryReelHeader()
-    # MANDATORY FIELDS
-    # brh.data_traces_per_ensemble = 0 # Pre-stack data
-    # brh.auxiliary_traces_per_ensemble = 0 # Pre-stack data
-    brh.sample_interval = sample_interval*1000  # microseconds
-    brh.num_samples = data.shape[-1]
-    brh.fixed_length_trace_flag = 1  # Default is 0 = varying trace length
-    # brh.format_revision_num = 1 # Default is 1
-    brh.data_sample_format = dtype  # Default is 5 = IEEE float
-    # brh.num_extended_textual_headers = 0 # Default is 0
-    # RECOMMENDED FIELDS
-    brh.ensemble_fold = 1  # Default = 0
-    brh.trace_sorting = 4  # 2 = cdp, 4 = stack, default 0 = unknown
-    brh.measurement_system = 1  # m, default 0 = unknown, 2 = ft
+def _getDefaultSegyTraceHeaders(ntraces, ns, dt, t_min):
+    """
+    SH=getDefaultSegyTraceHeader()
+    """
+    STH = {"TraceSequenceLine": {"pos": 0, "type": "int32"}}
 
-    # Write the binary header.
-    segpy.toolkit.write_binary_reel_header(fo, brh)
+    for key in STH_def:
+        STH[key] = np.zeros(ntraces, dtype=np.int32)
 
-    # Pre-format trace header format.
-    t = segpy.trace_header.TraceHeaderRev1
-    trace_header_packer = segpy.toolkit.make_header_packer(t)
+    for a in range(ntraces):
+        STH["TraceSequenceLine"][a] = a + 1
+        STH["TraceSequenceFile"][a] = a + 1
+        STH["FieldRecord"][a] = 1000
+        STH["TraceNumber"][a] = a + 1
+        STH["ns"][a] = ns
+        STH["dt"][a] = int(dt * 1000000)  # microseconds
+        STH["DelayRecordingTime"][a] = int(t_min * 1000)  # milliseconds
 
-    # Make a trace geometry.
-    xxlines, iinlines = np.meshgrid(xlines, inlines)
-    trace_iter = np.vstack([iinlines.flat, xxlines.flat]).T
+    return STH
 
-    # Iterate over the geometry and populate the traces.
-    i = 0
-    for inline, xline in trace_iter:
-        i += 1
 
-        if data.ndim == 3:
-            samples = data[inline, xline]
-        else:
-            samples = data[xline]
+def _writeSegyStructure(fo, data, SH, STH):
+    """
+    internal method
+    """
+    revision = SH["SegyFormatRevisionNumber"]
+    dsf = SH["DataSampleFormat"]
+    if revision in [100, 256]:
+        revision = 1
 
-        trace_header = segpy.trace_header.TraceHeaderRev1()
+    # WRITE SEGY HEADER
+    for key in SH_def:
+        pos = SH_def[key]["pos"]
+        fmt = SH_def[key]["type"]
+        value = SH[key]
 
-        trace_header.field_record_num = i
-        trace_header.trace_num = i
-        trace_header.num_samples = len(samples)
-        trace_header.sample_interval = sample_interval
+        _putValue(value, fo, pos, fmt)
 
-        if data.ndim == 3:
-            trace_header.file_sequence_num = inline
-            trace_header.ensemble_num = xline
-            trace_header.inline_number = inline
-            trace_header.crossline_number = xline
-        else:
-            trace_header.file_sequence_num = 1000 + i
-            trace_header.ensemble_num = xline
-            trace_header.shotpoint_number = xline
+    # WRITE SEGY TRACES
+    ctype = SH_def['DataSampleFormat']['datatype'][revision][dsf]
+    bps = SH_def['DataSampleFormat']['bps'][revision][dsf]
 
-        # Write trace header and data.
-        segpy.toolkit.write_trace_header(fo, trace_header, trace_header_packer)
-        segpy.toolkit.write_trace_samples(fo, samples, seg_y_type=segy_type)
+    sizeT = 240 + SH['ns']*bps
 
-    print('leaving write_segy()')
+    for i, tr in enumerate(data):
+
+        index = 3600 + i*sizeT
+
+        # WRITE TRACE HEADER
+        for key in STH_def:
+            pos = index + STH_def[key]["pos"]
+            fmt = STH_def[key]["type"]
+            value = STH[key][i]
+            _putValue(value, fo, pos, fmt)
+
+        # WRITE DATA
+        cformat = '>' + ctype  # Always big endian.
+        for j, s in enumerate(tr):
+            strVal = struct.pack(cformat, s)
+            fo.seek(index + 240 + j*struct.calcsize(cformat))
+            fo.write(strVal)
+
+    fo.seek(0)
 
     return None
+
+
+def _putValue(value, fo, index, ctype):
+    """
+    putValue
+    """
+    size, ctype = set_type(ctype)
+
+    cformat = '>' + ctype
+
+    strVal = struct.pack(cformat, value)
+    fo.seek(index)
+    fo.write(strVal)
+
+    return None
+
+
+def write_segy(data, fo, dt, t_min, STHin={}, SHin={}):
+    """
+    write_segy
+
+    Times in seconds.
+
+    """
+    ns = data.shape[1]
+    ntraces = data.shape[0]
+
+    SH = _getDefaultSegyHeader(ntraces, ns, dt)
+    STH = _getDefaultSegyTraceHeaders(ntraces, ns, dt, t_min)
+
+    # ADD STHin, if exists...
+    for key in STHin:
+        for a in range(ntraces):
+            STH[key] = STHin[key][a]
+
+    # ADD SHin, if exists...
+        for key in SHin:
+            SH[key] = SHin[key]
+
+    _writeSegyStructure(fo, data, SH, STH)

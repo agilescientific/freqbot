@@ -19,7 +19,7 @@ def is_greyscale(im):
 def hilbert(s, phi=0):
     """
     Optional phase shift phi in degrees.
-    
+
     I don't understand why I need to handle the
     real and complex parts separately.
     """
@@ -27,11 +27,15 @@ def hilbert(s, phi=0):
     m = np.ceil((n + 1) / 2)
 
     r0 = np.exp(1j * np.radians(phi))
+
+    # Real part.
     rr = np.ones(n, dtype=complex)
-    ri = np.ones(n, dtype=complex)
     rr[:m] = r0
-    ri[:m] = r0
     rr[m+1:] = np.conj(r0)
+
+    # Imag part.
+    ri = np.ones(n, dtype=complex)
+    ri[:m] = r0
     ri[m+1:] = -1 * r0
 
     _Sr = rr * np.fft.fft(s)
@@ -39,15 +43,20 @@ def hilbert(s, phi=0):
 
     hr = np.fft.ifft(_Sr)
     hi = np.fft.ifft(_Si)
-    
+
     h = np.zeros_like(hr, dtype=complex)
-    
     h += hr.real + hi.imag * 1j
-    
+
     return h
 
 
-def trim_mean(a, proportion):
+def trim_mean(i, proportion):
+    """
+    Trim mean, roughly emulating scipy.stats.trim_mean().
+
+    Must deal with arrays or lists.
+    """
+    a = np.array(i)
     n = a.size
     a = np.sort(a)
     k = int(np.floor(n*proportion))
@@ -55,6 +64,9 @@ def trim_mean(a, proportion):
 
 
 def parabolic(f, x):
+    """
+    Interpolation.
+    """
     xv = 1/2. * (f[x-1] - f[x+1]) / (f[x-1] - 2 * f[x] + f[x+1]) + x
     yv = f[x] - 1/4. * (f[x-1] - f[x+1]) * (xv - x)
     return (xv, yv)
