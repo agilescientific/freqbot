@@ -401,4 +401,3 @@ STH_def["SourceMeasurementUnit"]["descr"]  =  {1: {
     6: "Kilograms (kg)"}}
 STH_def["UnassignedInt1"] = {"pos":232 ,"type": "int32"} #'int32');  %232
 STH_def["UnassignedInt2"] = {"pos":236 ,"type": "int32"} #'int32');  %236
-

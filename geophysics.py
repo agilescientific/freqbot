@@ -56,10 +56,8 @@ def trim_mean(i, proportion):
 
     Must deal with arrays or lists.
     """
-    a = np.array(i)
-    n = a.size
-    a = np.sort(a)
-    k = int(np.floor(n*proportion))
+    a = np.sort(np.array(i))
+    k = int(np.floor(a.size * proportion))
     return np.mean(a[k:-k])
 
 

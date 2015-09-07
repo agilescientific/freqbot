@@ -92,19 +92,19 @@ def freq():
     width, height = im.size[0], im.size[1]
 
     # Calculate dt and interpolate if necessary.
-    if dt_param[:4] == 'orig':
+    if dt_param[:4].lower() == 'orig':
         dt = (t_max - t_min) / (height - 1)
     else:
-        if dt_param == 'auto':
+        if dt_param[:4].lower() == 'auto':
             dts = [0.0005, 0.001, 0.002, 0.004, 0.008]
             for dt in sorted(dts, reverse=True):
-                target = 1 + (t_max - t_min) / dt
+                target = int(1 + (t_max - t_min) / dt)
                 # Accept the first one that is larger than the current height.
-                if target > height:
+                if target >= height:
                     break  # dt and target are set
         else:
             dt = float(dt_param)
-            target = (t_max - t_min) / dt
+            target = int((t_max - t_min) / dt)
 
         # If dt is not orig, we need to inpterpolate.
         im = im.resize((width, target), Image.ANTIALIAS)
@@ -139,23 +139,23 @@ def freq():
                                                                    t_min,
                                                                    t_max,
                                                                    traces,
-                                                                   m[method])
+                                                                   m[method.lower()])
 
     # Compute statistics.
     fsd, psd = np.nanstd(f_list), np.nanstd(p_list)
     fn, pn = len(f_list), len(p_list)
 
-    if avg == 'trim' and fn > 4:
+    if avg.lower() == 'trim' and fn > 4:
         f = geophysics.trim_mean(f_list, 0.2)
-    elif avg == 'mean' or (avg == 'trim' and fn <= 4):
+    elif avg.lower() == 'mean' or (avg == 'trim' and fn <= 4):
         f = np.nanmean(f_list)
     else:
         m = 'avg parameter must be trim or mean'
         raise InvalidUsage(m, status_code=410)
 
-    if avg == 'trim' and pn > 4:
+    if avg.lower() == 'trim' and pn > 4:
         p = geophysics.trim_mean(p_list, 0.2)
-    elif avg == 'mean' or (avg == 'trim' and pn <= 4):
+    elif avg.lower() == 'mean' or (avg == 'trim' and pn <= 4):
         p = np.nanmean(p_list)
     else:
         m = 'avg parameter must be trim or mean'
@@ -177,7 +177,7 @@ def freq():
         result['status'] = 'failed'
         m = 'Analysis error. Probably the colorbar is not greyscale.'
         result['message'] = m
-        result['parameters'] = utils.build_params(method, avg,
+        result['parameters'] = utils.build_params(method.lower(), avg.lower(),
                                                   t_min, t_max,
                                                   region,
                                                   trace_spacing,
@@ -209,7 +209,9 @@ def freq():
                                'sd': np.round(snrsd, 2)}
     result['result']['greyscale'] = grey
     result['result']['dt'] = dt
-    result['result']['img_size'] = {'height': height, 'width': width}
+    result['result']['img_size'] = {'original_height': height,
+                                    'width': width,
+                                    'resampled_height': target}
 
     if segy:
         result['result']['segy'] = file_link
@@ -300,5 +302,5 @@ def main():
                            title='Home')
 
 if __name__ == "__main__":
-    # application.debug = True
+    application.debug = True
     application.run()
