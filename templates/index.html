@@ -12,7 +12,7 @@
 <p>For example, you can send an image of some seismic, and it will guess the peak frequency. It selects 10 traces across the image, and finds the average and standard deviation of all of these.</p>
 <p><img class="img-responsive" src="https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg" width="600px" /></p>
 <p>Here's an example, using this image:</p>
-<a href="http://kwinkunks.pythonanywhere.com/freq?tmax=3&method=xing&avg=trim&ntraces=6&trace_spacing=random&bins=9&region=199,141,1608,1087&url=https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg"><pre>http://kwinkunks.pythonanywhere.com/freq?tmax=3&method=xing&avg=trim&ntraces=6&trace_spacing=random&bins=9&amp;region=199,141,1608,1087&url=https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg</pre></a>
+<a href="http://ageobot.elasticbeanstalk.com/freq?tmax=3&method=xing&avg=trim&ntraces=6&trace_spacing=random&bins=9&region=199,141,1608,1087&url=https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg"><pre>http://ageobot.elasticbeanstalk.com/freq?tmax=3&method=xing&avg=trim&ntraces=6&trace_spacing=random&bins=9&amp;region=199,141,1608,1087&url=https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg</pre></a>
 <h2>Parameters</h2>
 <ul>
 <li><code>url</code> — the URL of the image to analyse. If the image is greyscale (all channels equal), then the red channel is used. If not, then the app calculates the brightness using the <a href="http://alienryderflex.com/hsp.html">HSP colour model</a>.</li>
