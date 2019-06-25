@@ -24,7 +24,7 @@ def hilbert(s, phi=0):
     real and complex parts separately.
     """
     n = s.size
-    m = np.ceil((n + 1) / 2)
+    m = int(np.ceil((n + 1) / 2))
 
     r0 = np.exp(1j * np.radians(phi))
 
@@ -58,31 +58,40 @@ def trim_mean(i, proportion):
     """
     a = np.sort(np.array(i))
     k = int(np.floor(a.size * proportion))
-    return np.mean(a[k:-k])
+    return np.nanmean(a[k:-k])
 
 
 def parabolic(f, x):
     """
     Interpolation.
     """
+    x = int(x)
+    f = np.concatenate([f, [f[-1]]])
     xv = 1/2. * (f[x-1] - f[x+1]) / (f[x-1] - 2 * f[x] + f[x+1]) + x
     yv = f[x] - 1/4. * (f[x-1] - f[x+1]) * (xv - x)
     return (xv, yv)
 
 
 def freq_from_crossings(sig, fs):
-    indices = ((sig[1:] >= 0) & (sig[:-1] < 0)).nonzero()
+    """
+    Dominant frequency from zero-crossings.
+    """
+    indices, = np.where((sig[1:] >= 0) & (sig[:-1] < 0))
     crossings = [i - sig[i] / (sig[i+1] - sig[i]) for i in indices]
+    print("************* xings", crossings)
     return fs / np.mean(np.diff(crossings))
 
 
 def freq_from_autocorr(sig, fs):
+    """
+    Dominant frequency from autocorrelation.
+    """
     sig = sig + 128
     corr = np.convolve(sig, sig[::-1], mode='full')
-    corr = corr[len(corr)/2:]
+    corr = corr[int(len(corr)/2):]
     d = np.diff(corr)
     start = (d > 0).nonzero()[0][0]  # nonzero() returns a tuple
-    peak = np.argmax(corr[start:]) + start
+    peak = np.argmax(corr[int(start):]) + start
     px, py = parabolic(corr, peak)
     return fs / px
 
@@ -96,7 +105,10 @@ def get_spectrum(signal, fs):
     sig = db - np.amax(db) + 20
     indices = ((sig[1:] >= 0) & (sig[:-1] < 0)).nonzero()
     crossings = [z - sig[z] / (sig[z+1] - sig[z]) for z in indices]
-    mi, ma = np.amin(crossings), np.amax(crossings)
+    try:
+        mi, ma = np.amin(crossings), np.amax(crossings)
+    except:
+        mi, ma = 0, 0
     x = np.arange(0, len(f))  # for back-interpolation
     f_min = np.interp(mi, x, f)
     f_max = np.interp(ma, x, f)
@@ -105,6 +117,9 @@ def get_spectrum(signal, fs):
 
 
 def freq_from_fft(signal, fs):
+    """
+    Dominant frequency from FFT.
+    """
     f, a, f_min, f_max = get_spectrum(signal, fs)
     i = np.argmax(a)
     true_i = parabolic(np.log(a), i)[0]
@@ -140,7 +155,7 @@ def get_phase(i):
 
     # Get the interpolated phase values
     results = []
-    for ix in biggest_pruned:
+    for ix in map(int, biggest_pruned):
         true_i = parabolic(np.log(abs(e)+0.01), ix)[0]
         x = np.arange(0, len(e))
         rad = np.interp(true_i, x, np.angle(e))
@@ -164,20 +179,36 @@ def analyse(i, t_min, t_max, trace_indices, func):
 
     spec, freq, phase, snr = [], [], [], []
     mis, mas = [], []
+
+    print("****** i has shape", i.shape)
+    print("****** traceindices", trace_indices)
+
     for ti in trace_indices:
         trace = i[:, ti]
         try:
             f = func(trace, fs)
+            print("**************** f", f)
             freq.append(f)
+        except Exception as e:
+            print("**!! func ** ", e)
+
+        try:
             p = get_phase(trace)
             phase.append(p)
-            snr.append(get_snr(trace))
+        except Exception as e:
+            print("**!! phase ** ", e)
 
+        try:
+            snr.append(get_snr(trace))
+        except Exception as e:
+            print("**!! snr ** ", e)
+
+        try:
             frq, amp, fmi, fma = get_spectrum(trace, fs)
             spec.append(amp)
             mis.append(fmi)
             mas.append(fma)
-        except Exception:
-            continue
+        except Exception as e:
+            print("**!! spec ** ", e)
 
     return spec, freq, phase, snr, mis, mas

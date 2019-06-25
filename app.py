@@ -5,6 +5,7 @@ Freq code by endolith https://gist.github.com/endolith/255291
 """
 from io import BytesIO
 import uuid
+import base64
 
 from flask import Flask
 from flask import make_response
@@ -31,17 +32,20 @@ def handle_invalid_usage(error):
     return response
 
 
+#
+# Seismic frequency and SEGY bot
+#
 @application.route('/freq')
 def freq():
-
     # Params from inputs.
     url = request.args.get('url')
+    b64 = request.args.get('image')
     method = request.args.get('method') or 'xing'
     avg = request.args.get('avg') or 'mean'
     region = request.args.get('region')
     ntraces = request.args.get('ntraces') or '10'
     trace_spacing = request.args.get('trace_spacing') or 'regular'
-    bins = request.args.get('bins') or '9'
+    bins = request.args.get('bins') or '11'
     t_min = request.args.get('tmin') or '0'
     t_max = request.args.get('tmax') or '1'
     dt_param = request.args.get('dt') or 'auto'
@@ -57,7 +61,7 @@ def freq():
 
     # Condition or generate params.
     ntraces = int(ntraces)
-    bins = float(bins)
+    bins = int(bins)
     t_min = float(t_min)
     t_max = float(t_max)
     uuid1 = str(uuid.uuid1())
@@ -67,27 +71,48 @@ def freq():
         region = []
 
     # Fetch and crop image.
-    try:
-        r = requests.get(url)
-        im = Image.open(BytesIO(r.content))
-    except Exception:
-        result = {'job_uuid': uuid.uuid1()}
-        result['status'] = 'failed'
-        m = 'Error. Unable to open image from target URI. '
-        result['message'] = m
-        result['parameters'] = utils.build_params(method, avg,
-                                                  t_min, t_max,
-                                                  region,
-                                                  trace_spacing,
-                                                  url=url)
-        return jsonify(result)
+    if url:
+        try:
+            r = requests.get(url)
+            im = Image.open(BytesIO(r.content))
+        except Exception:
+            payload = {'job_uuid': uuid1}
+            payload['parameters'] = utils.build_params(method, avg,
+                                                       t_min, t_max, dt_param,
+                                                       region,
+                                                       trace_spacing,
+                                                       url=url)
+            mess = 'Unable to open image from target URI.'
+            raise InvalidUsage(mess, status_code=410, payload=payload)
+
+    elif b64:
+        try:
+            im = Image.open(BytesIO(base64.b64decode(b64)))
+        except Exception:
+            payload = {'job_uuid': uuid1}
+            payload['parameters'] = utils.build_params(method, avg,
+                                                       t_min, t_max, dt_param,
+                                                       region,
+                                                       trace_spacing,
+                                                       url=url)
+            mess = 'Could not decode payload image. Check base64 encoding.'
+            raise InvalidUsage(mess, status_code=410, payload=payload)
+    else:
+        payload = {'job_uuid': uuid1}
+        payload['parameters'] = utils.build_params(method, avg,
+                                                   t_min, t_max, dt_param,
+                                                   region,
+                                                   trace_spacing,
+                                                   url=url)
+        mess = 'You must provide an image.'
+        raise InvalidUsage(mess, status_code=410, payload=payload)
 
     if region:
         try:
             im = im.crop(region)
         except Exception:
-            m = 'Improper crop parameters '
-            raise InvalidUsage(m+region, status_code=410)
+            mess = 'Improper crop parameters '
+            raise InvalidUsage(mess, status_code=410)
 
     width, height = im.size[0], im.size[1]
 
@@ -113,11 +138,13 @@ def freq():
     grey = geophysics.is_greyscale(im)
     i = np.asarray(im) - 128
     i = i.astype(np.int8)
-    if not grey:
+    if (not grey) and (i.ndim == 3):
         r, g, b = i[..., 0], i[..., 1], i[..., 2]
         i = np.sqrt(0.299 * r**2. + 0.587 * g**2. + 0.114 * b**2.)
-    else:
+    elif i.ndim == 3:
         i = i[..., 0]
+    else:
+        i = i
 
     # Get SEGY file link, if requested.
     if segy:
@@ -131,6 +158,7 @@ def freq():
             file_link = utils.get_url(databytes, uuid1)
 
     # Do analysis.
+    print("Starting analysis")
     m = {'auto': geophysics.freq_from_autocorr,
          'fft':  geophysics.freq_from_fft,
          'xing': geophysics.freq_from_crossings}
@@ -139,51 +167,59 @@ def freq():
                                                                    t_min,
                                                                    t_max,
                                                                    traces,
-                                                                   m[method.lower()])
+                                                                   m[method])
+
+    print("Finished analysis")
 
     # Compute statistics.
+    print("***** f_list:", f_list)
+
     fsd, psd = np.nanstd(f_list), np.nanstd(p_list)
     fn, pn = len(f_list), len(p_list)
 
     if avg.lower() == 'trim' and fn > 4:
         f = geophysics.trim_mean(f_list, 0.2)
+        if np.isnan(f):
+            f = 0
     elif avg.lower() == 'mean' or (avg == 'trim' and fn <= 4):
         f = np.nanmean(f_list)
     else:
-        m = 'avg parameter must be trim or mean'
-        raise InvalidUsage(m, status_code=410)
+        mess = 'avg parameter must be trim or mean'
+        raise InvalidUsage(mess, status_code=410)
 
     if avg.lower() == 'trim' and pn > 4:
         p = geophysics.trim_mean(p_list, 0.2)
     elif avg.lower() == 'mean' or (avg == 'trim' and pn <= 4):
         p = np.nanmean(p_list)
     else:
-        m = 'avg parameter must be trim or mean'
-        raise InvalidUsage(m, status_code=410)
+        mess = 'avg parameter must be trim or mean'
+        raise InvalidUsage(mess, status_code=410)
 
     snrsd = np.nanstd(snr_list)
     snr = np.nanmean(snr_list)
 
     # Spectrum.
+    print("Starting spectrum")
+
     try:
-        spec = np.mean(np.dstack(specs), axis=-1)
+        assert len(f_list) > 0
+        spec = np.nanmean(np.dstack(specs), axis=-1)
         fs = i.shape[0] / (t_max - t_min)
         freq = np.fft.rfftfreq(i.shape[0], 1/fs)
         f_min = np.amin(mis)
         f_max = np.amax(mas)
     except:
-        # Probably the image is not greyscale.
-        result = {'job_uuid': uuid.uuid1()}
-        result['status'] = 'failed'
-        m = 'Analysis error. Probably the colorbar is not greyscale.'
-        result['message'] = m
-        result['parameters'] = utils.build_params(method.lower(), avg.lower(),
-                                                  t_min, t_max,
-                                                  region,
-                                                  trace_spacing,
-                                                  url=url)
+        print("Failed spectrum")
 
-        return jsonify(result)
+        # Probably the image is not greyscale.
+        payload = {'job_uuid': uuid1}
+        payload['parameters'] = utils.build_params(method, avg,
+                                                   t_min, t_max, dt_param,
+                                                   region,
+                                                   trace_spacing,
+                                                   url=url)
+        mess = 'Analysis error. Probably the colorbar is not greyscale.'
+        raise InvalidUsage(mess, status_code=410, payload=payload)
 
     # Histogram.
     if bins:
@@ -233,7 +269,9 @@ def freq():
 
     return jsonify(result)
 
-
+#
+# Bruges logo and text generators
+#
 @application.route('/bruges')
 @application.route('/bruges.png')
 def bruges_png():
@@ -300,6 +338,7 @@ def bruges_help():
 def main():
     return render_template('index.html',
                            title='Home')
+
 
 if __name__ == "__main__":
     application.debug = True

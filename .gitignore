@@ -1,4 +1,6 @@
 secrets.py
+.DS_Store
+.vscode/
 
 .elasticbeanstalk
 .ebextensions
