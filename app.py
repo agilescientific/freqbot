@@ -202,7 +202,6 @@ def freq():
     print("Starting spectrum")
 
     try:
-        assert len(f_list) > 0
         spec = np.nanmean(np.dstack(specs), axis=-1)
         fs = i.shape[0] / (t_max - t_min)
         freq = np.fft.rfftfreq(i.shape[0], 1/fs)

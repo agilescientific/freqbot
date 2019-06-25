@@ -7,63 +7,68 @@
 </head>
 <body>
 <div class="container">
-<h1>Welcome to freqbot</h1>
-<p><strong>freqbot</strong> accepts images and guesses their 1D vertical frequency content. Use the <code>/freq</code> endpoint.</p>
-<p>For example, you can send an image of some seismic, and it will guess the peak frequency. It selects 10 traces across the image, and finds the average and standard deviation of all of these.</p>
-<p><img class="img-responsive" src="https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg" width="600px" /></p>
-<p>Here's an example, using this image:</p>
-<a href="http://ageobot.elasticbeanstalk.com/freq?tmax=3&method=xing&avg=trim&ntraces=6&trace_spacing=random&bins=9&region=199,141,1608,1087&url=https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg"><pre>http://ageobot.elasticbeanstalk.com/freq?tmax=3&method=xing&avg=trim&ntraces=6&trace_spacing=random&bins=9&amp;region=199,141,1608,1087&url=https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg</pre></a>
-<h2>Parameters</h2>
-<ul>
-<li><code>url</code> — the URL of the image to analyse. If the image is greyscale (all channels equal), then the red channel is used. If not, then the app calculates the brightness using the <a href="http://alienryderflex.com/hsp.html">HSP colour model</a>.</li>
-<li><code>method</code> &nbsp; the method for frequency estimation:
- <ul>
- <li><code>xing</code> — zero crossings (default).</li>
- <li><code>auto</code> — autocorrelation.</li>
- <li><code>fft</code> — FFT peak, doesn't work all that well.</li>
- </ul>
-</li>
-<li><code>avg</code> &nbsp; the method for averaging:
- <ul>
- <li><code>trim</code> — 20% trimmed mean; fails over to 'mean' if there are fewer than 5 elements to average.</li>
- <li><code>mean</code> — the arithmetic mean (default)</li>
- </ul>
-</li>
-<li><code>tmin</code> — the time of the top pixel, in s (default <code>0.0</code>)</li>
-<li><code>tmax</code> — the time of the bottom pixel, in s (default <code>1.0</code>)</li>
-<li><code>ntraces</code> — number of traces to extract to get statistics from (default 10)</li>
-<li><code>trace_spacing</code> — can be <code>regular</code> or <code>random</code></li>
-<li><code>bins</code> — number of bins for the histogram (default <code>11</code>); use <code>0</code> for no histogram.</li>
-<li><code>region</code> — the region to analyse in pixels, like <code>100,100,900,900</code> (default is all of it). Coordinates are left, top, right, bottom (or, equivalently, (x, y) for the top-left corner, then (x, y) for the bottom-right corner. All measured in pixels from the origin at top-left.</li>
-</ul>
-<h2>Example</h2>
-<p>This GET request is the same as the one shown in the link above.</p>
-<pre>import requests
+    <h1>Welcome to freqbot</h1>
+    <p><strong>freqbot</strong> accepts images and guesses their 1D vertical frequency content. Use the <code>/freq</code> endpoint.</p>
+    <p>For example, you can send an image of some seismic, and it will guess the peak frequency. It selects 10 traces across the image, and finds the average and standard deviation of all of these.</p>
+    <p><img class="img-responsive" src="https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg" width="600px" /></p>
+    <p>Here's an example, using this image:</p>
+    <a href="http://ageobot.elasticbeanstalk.com/freq?tmax=3&method=xing&avg=trim&ntraces=6&trace_spacing=random&bins=9&region=199,141,1608,1087&url=https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg"><pre>http://ageobot.elasticbeanstalk.com/freq?tmax=3&method=xing&avg=trim&ntraces=6&trace_spacing=random&bins=9&amp;region=199,141,1608,1087&url=https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg</pre></a>
 
-url = "http://kwinkunks.pythonanywhere.com/freq"
-target = "https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg"
-params = {'tmax': 3.0,
-          'method': 'xing',
-          'avg': 'trim',
-          'ntraces': '6',
-          'trace_spacing': 'random',
-          'bins': '9',
-          'region': '199,141,1608,1087',
-          'url': target
-          }
-headers={"Accept": "application/json"}
+    <h2>Parameters</h2>
+    <ul>
+        <li><code>url</code> — the URL of the image to analyse. If the image is greyscale (all channels equal), then the red channel is used. If not, then the app calculates the brightness using the <a href="http://alienryderflex.com/hsp.html">HSP colour model</a>.</li>
+        <li><code>method</code> &nbsp; the method for frequency estimation:
+            <ul>
+            <li><code>xing</code> — zero crossings (default).</li>
+            <li><code>auto</code> — autocorrelation.</li>
+            <li><code>fft</code> — FFT peak, doesn't work all that well.</li>
+            </ul>
+        </li>
+        <li><code>avg</code> &nbsp; the method for averaging:
+            <ul>
+            <li><code>trim</code> — 20% trimmed mean; fails over to 'mean' if there are fewer than 5 elements to average.</li>
+            <li><code>mean</code> — the arithmetic mean (default)</li>
+            </ul>
+        </li>
+        <li><code>tmin</code> — the time of the top pixel, in s (default <code>0.0</code>)</li>
+        <li><code>tmax</code> — the time of the bottom pixel, in s (default <code>1.0</code>)</li>
+        <li><code>ntraces</code> — number of traces to extract to get statistics from (default 10)</li>
+        <li><code>trace_spacing</code> — can be <code>regular</code> or <code>random</code></li>
+        <li><code>bins</code> — number of bins for the histogram (default <code>11</code>); use <code>0</code> for no histogram.</li>
+        <li><code>region</code> — the region to analyse in pixels, like <code>100,100,900,900</code> (default is all of it). Coordinates are left, top, right, bottom (or, equivalently, (x, y) for the top-left corner, then (x, y) for the bottom-right corner. All measured in pixels from the origin at top-left.</li>
+    </ul>
 
-response = requests.get(url, headers=headers, params=params)
-response.json()</pre>
-<h2>TODO</h2>
-<ul>
-<li>Flag if aliasing</li>
-<li>Estimate average amplitude spectrum</li>
-<li>Wavelet estimation</li>
-<li>Colourmap extraction</li>
-<li>Link to download as SEGY</li>
-<li>Human interface</li>
-</ul>
+    <h2>Example</h2>
+    <p>This GET request is the same as the one shown in the link above.</p>
+    <pre>import requests
+
+    url = "http://kwinkunks.pythonanywhere.com/freq"
+    target = "https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg"
+    params = {'tmax': 3.0,
+            'method': 'xing',
+            'avg': 'trim',
+            'ntraces': '6',
+            'trace_spacing': 'random',
+            'bins': '9',
+            'region': '199,141,1608,1087',
+            'url': target
+            }
+    headers={"Accept": "application/json"}
+
+    response = requests.get(url, headers=headers, params=params)
+    response.json()</pre>
+
+    <h2>TODO</h2>
+    <ul>
+    <li>Flag if aliasing</li>
+    <li>Estimate average amplitude spectrum</li>
+    <li>Wavelet estimation</li>
+    <li>Colourmap extraction</li>
+    <li>Human interface</li>
+    </ul>
+
+    <h2>Version</h2>
+    <p>This is version 0.2.1</p>
 </div>
 </body>
 </html>
