@@ -17,11 +17,7 @@ def get_url(databytes, uuid1):
     success = False
 
     try:
-        from secrets import KEY, SECRET
-        session = boto3.session.Session(aws_access_key_id=KEY,
-                                        aws_secret_access_key=SECRET,
-                                        region_name='us-east-1'
-                                        )
+        session = boto3.session.Session(region_name='us-east-1')
         client = session.client('s3')
         key = uuid1 + '.segy'
         bucket = 'ageobot'
