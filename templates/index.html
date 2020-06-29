@@ -12,7 +12,7 @@
     <p>For example, you can send an image of some seismic, and it will guess the peak frequency. It selects 10 traces across the image, and finds the average and standard deviation of all of these.</p>
     <p><img class="img-responsive" src="https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg" width="600px" /></p>
     <p>Here's an example, using this image:</p>
-    <a href="http://ageobot.elasticbeanstalk.com/freq?tmax=3&method=xing&avg=trim&ntraces=6&trace_spacing=random&bins=9&region=199,141,1608,1087&url=https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg"><pre>http://ageobot.elasticbeanstalk.com/freq?tmax=3&method=xing&avg=trim&ntraces=6&trace_spacing=random&bins=9&amp;region=199,141,1608,1087&url=https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg</pre></a>
+    <a href="http://freqbot.geosci.ai/freq?tmax=3&method=xing&avg=trim&ntraces=6&trace_spacing=random&bins=9&region=199,141,1608,1087&url=https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg"><pre>http://freqbot.geosci.ai/freq?tmax=3&method=xing&avg=trim&ntraces=6&trace_spacing=random&bins=9&amp;region=199,141,1608,1087&url=https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg</pre></a>
 
     <h2>Parameters</h2>
     <ul>
@@ -42,7 +42,7 @@
     <p>This GET request is the same as the one shown in the link above.</p>
     <pre>import requests
 
-    url = "http://kwinkunks.pythonanywhere.com/freq"
+    url = "http://freqbot.geosci.ai/freq"
     target = "https://math.berkeley.edu/~sethian/2006/Applications/Seismic/time_mig_img.jpg"
     params = {'tmax': 3.0,
             'method': 'xing',
