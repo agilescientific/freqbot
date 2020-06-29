@@ -4,11 +4,17 @@ services:
   server:
     image: abiosoft/caddy
     volumes:
-      - Caddyfile:/etc/Caddyfile
+      - ./Caddyfile:/etc/Caddyfile
       - ~/.caddy:/root/.caddy
     ports:
       - "80:80"
       - "443:443"
+    networks:
+      - defaultnetwork
+    user: $UID:$GID
+    depends_on:
+      - web
+
   web:
     build:
       context: .
@@ -18,8 +24,6 @@ services:
         - .env
     volumes:
       - .:/app
-    ports:
-      - "8080:80"
     networks:
       - defaultnetwork
     user: $UID:$GID
