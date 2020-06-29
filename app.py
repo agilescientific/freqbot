@@ -268,77 +268,8 @@ def freq():
 
     return jsonify(result)
 
-#
-# Bruges logo and text generators
-#
-@application.route('/bruges')
-@application.route('/bruges.png')
-def bruges_png():
-
-    p = float(request.args.get('p') or 0.5)
-    n = int(request.args.get('n') or 1)
-    style = str(request.args.get('style') or '')
-
-    text = get_bruges(p, n)
-    text = urllib.parse.quote_plus(text)
-
-    base_url = "https://chart.googleapis.com/chart"
-
-    if style.lower() == 'bubble':
-        q = "?chst=d_bubble_text_small&chld=bb|{}|14AFCA|000000"
-        query = q.format(text)
-    else:
-        q = "?chst=d_text_outline&chld=14AFCA|24|h|325396|b|{}"
-        query = q.format(text)
-
-    url = base_url + query
-
-    r = requests.get(url)
-    b = BytesIO(r.content)
-
-    response = make_response(b.getvalue())
-    response.mimetype = 'image/png'
-    return response
-
-
-@application.route('/bruges.json')
-def bruges_json():
-
-    p = float(request.args.get('p') or 0.5)
-    n = int(request.args.get('n') or 1)
-
-    text = get_bruges(p, n)
-    dictionary = {'result': text,
-                  'p': p,
-                  'n': n,
-                  }
-
-    return jsonify(dictionary)
-
-
-@application.route('/bruges.txt')
-def bruges_text():
-
-    p = float(request.args.get('p') or 0.5)
-    n = int(request.args.get('n') or 1)
-
-    text = get_bruges(p, n)
-    return text
-
-
-@application.route('/bruges.help')
-def bruges_help():
-
-    return render_template('bruges.html',
-                           title='Bruges help')
-
 
 @application.route('/')
 def main():
     return render_template('index.html',
                            title='Home')
-
-
-if __name__ == "__main__":
-    application.debug = True
-    application.run()
