@@ -15,7 +15,8 @@ jobs:
         with:
           command: |
             cd freqbot
-            git pull
+            git pull --all
+            git checkout production
             docker-compose build
             docker-compose down
             docker-compose up -d
