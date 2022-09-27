@@ -14,7 +14,11 @@ jobs:
         uses: fifsky/ssh-action@master
         with:
           command: |
-            bash pull_and_reload.sh
+            cd freqbot
+            git pull
+            docker-compose -f docker-compose.yml build
+            docker-compose -f docker-compose.yml down
+            docker-compose -f docker-compose.yml up -d
           host: ${{ secrets.HOST }}
           user: ubuntu
           key: ${{ secrets.PRIVATE_KEY}}
