@@ -1,0 +1,23 @@
+# Use this for local server, for example:
+# docker-compose -f docker-compose.local.yml up
+version: "3"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ageobot
+    env_file:
+        - .env
+    volumes:
+      - .:/app
+    ports:
+      - "8080:80"
+    networks:
+      - defaultnetwork
+    user: $UID:$GID
+
+networks:
+    defaultnetwork:
+        driver: bridge

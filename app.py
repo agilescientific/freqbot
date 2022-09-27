@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Simple application to provide freq from images of seismic.
 Freq code by endolith https://gist.github.com/endolith/255291
@@ -8,15 +7,12 @@ import uuid
 import base64
 
 from flask import Flask
-from flask import make_response
 from flask import request, jsonify, render_template
 
-import urllib
 import requests
 import numpy as np
 from PIL import Image
 
-from bruges import get_bruges
 import geophysics
 from segy import write_segy
 import utils
