@@ -1,0 +1,27 @@
+name: Remote SSH deploy
+
+on:
+  push:
+    branches: [ production ]
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: freqbot ssh deploy
+        uses: fifsky/ssh-action@master
+        with:
+          command: |
+            cd freqbot
+            git pull --all
+            git checkout production
+            docker-compose build
+            docker-compose down
+            docker-compose up -d
+          host: ${{ secrets.HOST }}
+          user: ubuntu
+          key: ${{ secrets.PRIVATE_KEY}}
+
+          args: "-tt -vvv"
